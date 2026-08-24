@@ -90,7 +90,7 @@
         <div class="stats">
             <div>Vida: ❤️ <span id="health">100</span></div>
             <div>Arma: 🔫 <span id="weapon-name">AK-47</span></div>
-            <div>Munição: 💣 <span id="ammo">30</span>/90</div>
+            <div>Munição: 💣 <span id="ammo">30</span></div>
         </div>
     </div>
 
@@ -225,7 +225,6 @@
             }
         }
 
-        // Geração otimizada de skin aleatória pixelada via Canvas
         function generateRandomTexture() {
             const cvs = document.createElement('canvas');
             cvs.width = 16; cvs.height = 16;
@@ -239,7 +238,6 @@
                     ctx.fillRect(x, y, 1, 1);
                 }
             }
-            // Adicionar detalhes de olho/rosto
             ctx.fillStyle = '#000';
             ctx.fillRect(3, 4, 3, 3); ctx.fillRect(10, 4, 3, 3);
             ctx.fillRect(4, 11, 8, 2);
@@ -255,17 +253,14 @@
             const skinTex = generateRandomTexture();
             const mat = new THREE.MeshStandardMaterial({ map: skinTex });
 
-            // Cabeça
             const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), mat);
             head.position.y = 1.6;
             group.add(head);
 
-            // Tronco
             const torso = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.3), mat);
             torso.position.y = 0.9;
             group.add(torso);
 
-            // Pernas
             const lLeg = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.5, 0.25), mat);
             lLeg.position.set(-0.15, 0.25, 0);
             group.add(lLeg);
@@ -274,7 +269,6 @@
             rLeg.position.set(0.15, 0.25, 0);
             group.add(rLeg);
 
-            // Braços estendidos (agressivos)
             const lArm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.6, 0.2), mat);
             lArm.position.set(-0.4, 1.1, -0.2);
             lArm.rotation.x = -Math.PI / 2;
@@ -295,7 +289,6 @@
                 bot.position.set((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60);
                 bot.userData = { hp: 150, maxHp: 150, lastAttack: 0 };
 
-                // Barra de Vida
                 const hpCanvas = document.createElement('canvas');
                 hpCanvas.width = 128; hpCanvas.height = 16;
                 const hpTexture = new THREE.CanvasTexture(hpCanvas);
@@ -328,15 +321,20 @@
 
         function spawnAmmoPickups() {
             ammoPickups = [];
+            for (let i = 0; i < 5; i++) {
+                const pos = new THREE.Vector3((Math.random() - 0.5) * 70, 0, (Math.random() - 0.5) * 70);
+                dropAmmoCartridge(pos);
+            }
+        }
+
+        // Função para criar o cartucho de munição da AK-47
+        function dropAmmoCartridge(position) {
             const geo = new THREE.BoxGeometry(0.5, 0.3, 0.7);
             const mat = new THREE.MeshStandardMaterial({ color: 0xffaa00, roughness: 0.3 });
-
-            for (let i = 0; i < 8; i++) {
-                const box = new THREE.Mesh(geo, mat);
-                box.position.set((Math.random() - 0.5) * 70, 0.15, (Math.random() - 0.5) * 70);
-                scene.add(box);
-                ammoPickups.push(box);
-            }
+            const box = new THREE.Mesh(geo, mat);
+            box.position.set(position.x, 0.15, position.z);
+            scene.add(box);
+            ammoPickups.push(box);
         }
 
         const keys = {};
@@ -387,6 +385,9 @@
                     hitObj.userData.hp -= 50;
 
                     if (hitObj.userData.hp <= 0) {
+                        // Drop de munição da AK-47 na posição do mob eliminado
+                        dropAmmoCartridge(hitObj.position);
+
                         scene.remove(hitObj);
                         bots = bots.filter(b => b !== hitObj);
                         document.getElementById('bot-count').innerText = bots.length;
@@ -436,17 +437,22 @@
                 camera.position.add(moveVector);
             }
 
-            // Mobs Agressivos: Andar em direção ao jogador e atacar
+            // Mobs Agressivos: Perseguição direta e rápida
             const now = Date.now();
             bots.forEach(bot => {
                 bot.lookAt(camera.position.x, bot.position.y, camera.position.z);
-                const dir = new THREE.Vector3();
-                bot.getWorldDirection(dir);
-                bot.position.add(dir.multiplyScalar(0.04));
+                
+                // Vetor de direção direto em relação ao jogador
+                const moveDir = new THREE.Vector3().subVectors(camera.position, bot.position);
+                moveDir.y = 0;
+                moveDir.normalize();
+                
+                // Velocidade de perseguição acelerada (0.075)
+                bot.position.add(moveDir.multiplyScalar(0.075));
 
                 const dist = bot.position.distanceTo(camera.position);
-                if (dist < 1.5 && now - bot.userData.lastAttack > 1000) {
-                    player.health -= 15;
+                if (dist < 1.5 && now - bot.userData.lastAttack > 800) {
+                    player.health -= 20;
                     document.getElementById('health').innerText = Math.max(0, player.health);
                     bot.userData.lastAttack = now;
 
@@ -456,12 +462,12 @@
                 }
             });
 
-            // Coleta de Cartuchos de Munição pelo mapa
+            // Coleta de Cartuchos de Munição
             for (let i = ammoPickups.length - 1; i >= 0; i--) {
                 const box = ammoPickups[i];
-                box.rotation.y += 0.02;
+                box.rotation.y += 0.03;
                 if (camera.position.distanceTo(box.position) < 1.8) {
-                    player.ammo += 30;
+                    player.ammo += 30; // Adiciona +30 cartuchos de AK-47
                     document.getElementById('ammo').innerText = player.ammo;
                     scene.remove(box);
                     ammoPickups.splice(i, 1);
