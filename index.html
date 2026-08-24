@@ -51,7 +51,7 @@
 </head>
 <body>
 
-    <!-- 1. Tela de Apresentação (Splash) -->
+    <!-- 1. Tela de Apresentação -->
     <div id="splash-screen" class="screen">
         <h1>COLDSHOT</h1>
     </div>
@@ -105,7 +105,6 @@
 
         const shopItems = ["Camuflagem Urbana", "Camuflagem Deserto", "Tático Ártico", "Operador Neon"];
 
-        // Fluxo Inicial
         window.onload = () => {
             document.getElementById('gems-count').innerText = gems;
             setTimeout(() => {
@@ -164,7 +163,6 @@
             }
         }
 
-        // Início do Jogo
         function startGame(selectedMode) {
             mode = selectedMode;
             document.getElementById('main-menu').classList.add('hidden');
@@ -286,4 +284,4 @@
         });
     </script>
 </body>
-</html>
+</html>>
