@@ -85,7 +85,7 @@
     <div id="hud" class="hidden">
         <div class="crosshair"></div>
         <div class="scoreboard">
-            Inimigos Restantes: <span id="bot-count">5</span> | Modo: <span id="game-mode-display">-</span>
+            Inimigos Restantes: <span id="bot-count">0</span> | Modo: <span id="game-mode-display">-</span>
         </div>
         <div class="stats">
             <div>Vida: ❤️ <span id="health">100</span></div>
@@ -284,9 +284,11 @@
 
         function spawnBots() {
             bots = [];
-            for (let i = 0; i < 5; i++) {
+            const botCount = (mode === 'ranked') ? 50 : 25;
+
+            for (let i = 0; i < botCount; i++) {
                 const bot = createRandomCharacter();
-                bot.position.set((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60);
+                bot.position.set((Math.random() - 0.5) * 80, 0, (Math.random() - 0.5) * 80);
                 bot.userData = { hp: 150, maxHp: 150, lastAttack: 0 };
 
                 const hpCanvas = document.createElement('canvas');
@@ -321,13 +323,12 @@
 
         function spawnAmmoPickups() {
             ammoPickups = [];
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 8; i++) {
                 const pos = new THREE.Vector3((Math.random() - 0.5) * 70, 0, (Math.random() - 0.5) * 70);
                 dropAmmoCartridge(pos);
             }
         }
 
-        // Função para criar o cartucho de munição da AK-47
         function dropAmmoCartridge(position) {
             const geo = new THREE.BoxGeometry(0.5, 0.3, 0.7);
             const mat = new THREE.MeshStandardMaterial({ color: 0xffaa00, roughness: 0.3 });
@@ -385,7 +386,6 @@
                     hitObj.userData.hp -= 50;
 
                     if (hitObj.userData.hp <= 0) {
-                        // Drop de munição da AK-47 na posição do mob eliminado
                         dropAmmoCartridge(hitObj.position);
 
                         scene.remove(hitObj);
@@ -421,7 +421,6 @@
             if (!isPlaying) return;
             requestAnimationFrame(animate);
 
-            // Controles de movimento do jogador
             const speed = 0.12;
             const moveVector = new THREE.Vector3();
             const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)).normalize();
@@ -437,17 +436,14 @@
                 camera.position.add(moveVector);
             }
 
-            // Mobs Agressivos: Perseguição direta e rápida
             const now = Date.now();
             bots.forEach(bot => {
                 bot.lookAt(camera.position.x, bot.position.y, camera.position.z);
                 
-                // Vetor de direção direto em relação ao jogador
                 const moveDir = new THREE.Vector3().subVectors(camera.position, bot.position);
                 moveDir.y = 0;
                 moveDir.normalize();
                 
-                // Velocidade de perseguição acelerada (0.075)
                 bot.position.add(moveDir.multiplyScalar(0.075));
 
                 const dist = bot.position.distanceTo(camera.position);
@@ -462,12 +458,11 @@
                 }
             });
 
-            // Coleta de Cartuchos de Munição
             for (let i = ammoPickups.length - 1; i >= 0; i--) {
                 const box = ammoPickups[i];
                 box.rotation.y += 0.03;
                 if (camera.position.distanceTo(box.position) < 1.8) {
-                    player.ammo += 30; // Adiciona +30 cartuchos de AK-47
+                    player.ammo += 30;
                     document.getElementById('ammo').innerText = player.ammo;
                     scene.remove(box);
                     ammoPickups.splice(i, 1);
@@ -486,4 +481,4 @@
         });
     </script>
 </body>
-</html>
+</html>>
