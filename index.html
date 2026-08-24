@@ -102,6 +102,7 @@
         let scene, camera, renderer, mode = 'casual';
         let bots = [], ammoPickups = [], player = { health: 100, weapon: 'AK-47', ammo: 30 };
         let isPlaying = false;
+        let controlsSetup = false;
         
         let yaw = 0, pitch = 0;
         const mouseSensitivity = 0.002;
@@ -184,6 +185,8 @@
 
         function init3DScene() {
             const canvas = document.getElementById('game-canvas');
+            if (renderer) renderer.dispose();
+            
             renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
 
@@ -285,13 +288,12 @@
         function spawnBots() {
             bots = [];
             const botCount = (mode === 'ranked') ? 25 : 15;
-            const minDistance = 20; // Distância mínima do jogador (que inicia no centro 0,0)
+            const minDistance = 20; // Mínimo de 20 unidades de distância do jogador (0,0)
 
             for (let i = 0; i < botCount; i++) {
                 const bot = createRandomCharacter();
                 let x, z, distSq;
 
-                // Garante que o monstro spawne longe do ponto inicial (0,0)
                 do {
                     x = (Math.random() - 0.5) * 80;
                     z = (Math.random() - 0.5) * 80;
@@ -350,6 +352,9 @@
 
         const keys = {};
         function setupControls() {
+            if (controlsSetup) return;
+            controlsSetup = true;
+
             window.addEventListener('keydown', (e) => keys[e.code] = true);
             window.addEventListener('keyup', (e) => keys[e.code] = false);
 
@@ -458,7 +463,7 @@
 
                 const dist = bot.position.distanceTo(camera.position);
                 if (dist < 1.5 && now - bot.userData.lastAttack > 800) {
-                    player.health -= 5; // Dano ajustado para 5 por hit
+                    player.health -= 5; // Reduzido para 5 de dano por ataque
                     document.getElementById('health').innerText = Math.max(0, player.health);
                     bot.userData.lastAttack = now;
 
