@@ -221,15 +221,100 @@
             }
         }
 
+        // Textura Pixelada 8x8 para Rostos estilo Minecraft
+        function createPixelFaceTexture(type) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 8; canvas.height = 8;
+            const ctx = canvas.getContext('2d');
+
+            if (type === 'zombie') {
+                ctx.fillStyle = '#2e7d32'; ctx.fillRect(0, 0, 8, 8); // Pele Verde
+                ctx.fillStyle = '#1b5e20';
+                ctx.fillRect(1, 2, 2, 2); ctx.fillRect(5, 2, 2, 2); // Olhos
+                ctx.fillRect(2, 5, 4, 2); // Boca
+            } else { // Skeleton
+                ctx.fillStyle = '#d6d6d6'; ctx.fillRect(0, 0, 8, 8); // Osso Cinza
+                ctx.fillStyle = '#212121';
+                ctx.fillRect(1, 2, 2, 2); ctx.fillRect(5, 2, 2, 2); // Olhos Pretos
+                ctx.fillRect(3, 4, 2, 1); ctx.fillRect(2, 5, 4, 2); // Nariz e Boca
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.magFilter = THREE.NearestFilter;
+            texture.minFilter = THREE.NearestFilter;
+            return texture;
+        }
+
+        // Criador de Mob estilo Minecraft (Zumbi ou Esqueleto)
+        function createPixelMob(type) {
+            const group = new THREE.Group();
+            const isZombie = type === 'zombie';
+
+            const skinColor = isZombie ? 0x2e7d32 : 0xd6d6d6;
+            const torsoColor = isZombie ? 0x00838f : 0xc2c2c2;
+            const legColor = isZombie ? 0x1a237e : 0xb0b0b0;
+
+            const skinMat = new THREE.MeshStandardMaterial({ color: skinColor });
+            const torsoMat = new THREE.MeshStandardMaterial({ color: torsoColor });
+            const legMat = new THREE.MeshStandardMaterial({ color: legColor });
+
+            // Face com textura pixelada na frente
+            const faceTex = createPixelFaceTexture(type);
+            const faceMat = new THREE.MeshStandardMaterial({ map: faceTex });
+            const headMaterials = [skinMat, skinMat, skinMat, skinMat, faceMat, skinMat];
+
+            // Cabeça
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), headMaterials);
+            head.position.y = 1.6;
+            group.add(head);
+
+            // Tronco
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.75, 0.25), torsoMat);
+            torso.position.y = 0.975;
+            group.add(torso);
+
+            // Pernas
+            const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.6, 0.22), legMat);
+            leftLeg.position.set(-0.13, 0.3, 0);
+            group.add(leftLeg);
+
+            const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.6, 0.22), legMat);
+            rightLeg.position.set(0.13, 0.3, 0);
+            group.add(rightLeg);
+
+            // Braços (Braços estendidos para Zumbi)
+            const armGeo = isZombie ? new THREE.BoxGeometry(0.2, 0.6, 0.2) : new THREE.BoxGeometry(0.15, 0.6, 0.15);
+            
+            const leftArm = new THREE.Mesh(armGeo, skinMat);
+            const rightArm = new THREE.Mesh(armGeo, skinMat);
+
+            if (isZombie) {
+                leftArm.position.set(-0.36, 1.1, -0.25);
+                leftArm.rotation.x = -Math.PI / 2;
+                rightArm.position.set(0.36, 1.1, -0.25);
+                rightArm.rotation.x = -Math.PI / 2;
+            } else {
+                leftArm.position.set(-0.33, 0.9, 0);
+                rightArm.position.set(0.33, 0.9, 0);
+            }
+
+            group.add(leftArm);
+            group.add(rightArm);
+
+            return group;
+        }
+
         function spawnBots() {
             bots = [];
+            const types = ['zombie', 'skeleton', 'zombie', 'skeleton', 'zombie']; // 5 Mobs
+
             for (let i = 0; i < 5; i++) {
-                const botGeo = new THREE.CylinderGeometry(0.6, 0.6, 2, 12);
-                const botMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-                const bot = new THREE.Mesh(botGeo, botMat);
+                const mobType = types[i];
+                const bot = createPixelMob(mobType);
                 
-                bot.position.set((Math.random() - 0.5) * 60, 1, (Math.random() - 0.5) * 60);
-                bot.userData = { hp: 500, maxHp: 500 }; // 500 de Vida
+                bot.position.set((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60);
+                bot.rotation.y = Math.random() * Math.PI * 2;
+                bot.userData = { hp: 500, maxHp: 500, type: mobType };
 
                 // Barra de Vida acima do Mob
                 const hpCanvas = document.createElement('canvas');
@@ -237,7 +322,7 @@
                 const hpTexture = new THREE.CanvasTexture(hpCanvas);
                 const hpSpriteMat = new THREE.SpriteMaterial({ map: hpTexture });
                 const hpSprite = new THREE.Sprite(hpSpriteMat);
-                hpSprite.position.set(0, 1.4, 0);
+                hpSprite.position.set(0, 2.1, 0);
                 hpSprite.scale.set(1.5, 0.2, 1);
                 
                 bot.add(hpSprite);
@@ -298,27 +383,38 @@
         }
 
         function checkHit() {
-            // Raycast a partir do centro do retículo (0,0)
             raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-            const intersects = raycaster.intersectObjects(bots);
+            const intersects = raycaster.intersectObjects(bots, true);
 
             if (intersects.length > 0) {
-                const hitBot = intersects[0].object;
-                hitBot.userData.hp -= 50; // Cada tiro tira 50 de vida
+                let hitObj = intersects[0].object;
+                
+                // Subir na hierarquia até encontrar o grupo principal do mob
+                while (hitObj.parent && hitObj.parent !== scene && !hitObj.userData.hp) {
+                    hitObj = hitObj.parent;
+                }
 
-                // Efeito visual ao tomar tiro
-                const origColor = hitBot.material.color.getHex();
-                hitBot.material.color.setHex(0xffffff);
-                setTimeout(() => hitBot.material.color.setHex(origColor), 80);
+                if (hitObj.userData && hitObj.userData.hp !== undefined) {
+                    hitObj.userData.hp -= 50; // Cada tiro remove 50 de HP
 
-                if (hitBot.userData.hp <= 0) {
-                    scene.remove(hitBot);
-                    bots = bots.filter(b => b !== hitBot);
-                    document.getElementById('bot-count').innerText = bots.length;
+                    // Efeito visual de dano piscando em branco
+                    hitObj.traverse((child) => {
+                        if (child.isMesh && child.material) {
+                            const origMat = child.material;
+                            child.material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                            setTimeout(() => { child.material = origMat; }, 80);
+                        }
+                    });
 
-                    if (bots.length === 0) finishGame();
-                } else {
-                    updateMobHpBar(hitBot);
+                    if (hitObj.userData.hp <= 0) {
+                        scene.remove(hitObj);
+                        bots = bots.filter(b => b !== hitObj);
+                        document.getElementById('bot-count').innerText = bots.length;
+
+                        if (bots.length === 0) finishGame();
+                    } else {
+                        updateMobHpBar(hitObj);
+                    }
                 }
             }
         }
@@ -342,7 +438,6 @@
             const speed = 0.12;
             const moveVector = new THREE.Vector3();
 
-            // Direção relativa ao olhar do jogador
             const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)).normalize();
             const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)).normalize();
 
