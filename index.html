@@ -285,10 +285,20 @@
         function spawnBots() {
             bots = [];
             const botCount = (mode === 'ranked') ? 25 : 15;
+            const minDistance = 20; // Distância mínima do jogador (que inicia no centro 0,0)
 
             for (let i = 0; i < botCount; i++) {
                 const bot = createRandomCharacter();
-                bot.position.set((Math.random() - 0.5) * 80, 0, (Math.random() - 0.5) * 80);
+                let x, z, distSq;
+
+                // Garante que o monstro spawne longe do ponto inicial (0,0)
+                do {
+                    x = (Math.random() - 0.5) * 80;
+                    z = (Math.random() - 0.5) * 80;
+                    distSq = x * x + z * z;
+                } while (distSq < minDistance * minDistance);
+
+                bot.position.set(x, 0, z);
                 bot.userData = { hp: 150, maxHp: 150, lastAttack: 0 };
 
                 const hpCanvas = document.createElement('canvas');
@@ -448,7 +458,7 @@
 
                 const dist = bot.position.distanceTo(camera.position);
                 if (dist < 1.5 && now - bot.userData.lastAttack > 800) {
-                    player.health -= 20;
+                    player.health -= 5; // Dano ajustado para 5 por hit
                     document.getElementById('health').innerText = Math.max(0, player.health);
                     bot.userData.lastAttack = now;
 
